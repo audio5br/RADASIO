@@ -1,0 +1,89 @@
+name: Instalador RAD Audio
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['flexasio-*']
+
+jobs:
+  settings-app:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: dotnet publish rad/app/RADAudioSettings.csproj -c Release -o rad/app/publish
+      - uses: actions/upload-artifact@v4
+        with:
+          name: settings-app
+          path: rad/app/publish/RADAudioSettings.exe
+          if-no-files-found: error
+
+  driver:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - msvc_config: x64-Release
+            msvc_arch: amd64
+            build_type: RelWithDebInfo
+          - msvc_config: x86-Release
+            msvc_arch: amd64_x86
+            build_type: RelWithDebInfo
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          # Necessario para o carimbo de versao (git describe).
+          fetch-depth: 0
+      # Aplica a marca no codigo (nao faz nada se voce ja tiver rodado o script e feito commit).
+      # O commit local deixa a arvore "limpa" para o carimbo de versao nao ganhar "-dirty".
+      - name: Aplicar a marca RAD Audio
+        run: |
+          python rad/apply_branding.py
+          git diff --quiet
+          if ($LASTEXITCODE -ne 0) { git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -a -m "RAD Audio: marca (CI)" }
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.msvc_arch }}
+      - run: cmake -S src -B src/out/build/${{ matrix.msvc_config }} -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_INSTALL_PREFIX:PATH=${{ github.workspace }}/src/out/install/${{ matrix.msvc_config }}
+      - run: cmake --build src/out/build/${{ matrix.msvc_config }}
+      - run: cmake --install src/out/build/${{ matrix.msvc_config }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: driver-${{ matrix.msvc_config }}
+          path: src/out/install/${{ matrix.msvc_config }}/
+
+  installer:
+    runs-on: windows-latest
+    needs: [settings-app, driver]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      # Aplica a marca no codigo (nao faz nada se voce ja tiver rodado o script e feito commit).
+      # O commit local deixa a arvore "limpa" para o carimbo de versao nao ganhar "-dirty".
+      - name: Aplicar a marca RAD Audio
+        run: |
+          python rad/apply_branding.py
+          git diff --quiet
+          if ($LASTEXITCODE -ne 0) { git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -a -m "RAD Audio: marca (CI)" }
+      - uses: actions/download-artifact@v4
+        with:
+          name: driver-x64-Release
+          path: src/out/install/x64-Release
+      - uses: actions/download-artifact@v4
+        with:
+          name: driver-x86-Release
+          path: src/out/install/x86-Release
+      - uses: actions/download-artifact@v4
+        with:
+          name: settings-app
+          path: rad/app/publish
+      - run: cmake -P installer.cmake
+        working-directory: src
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RADAudio-installer
+          path: src/out/installer/*
+          if-no-files-found: error

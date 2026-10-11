@@ -5,6 +5,9 @@ on:
   push:
     tags: ['flexasio-*']
 
+    env:
+  CMAKE_POLICY_VERSION_MINIMUM: "3.5"
+
 jobs:
   settings-app:
     runs-on: windows-latest

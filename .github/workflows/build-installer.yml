@@ -5,7 +5,9 @@ on:
   push:
     tags: ['flexasio-*']
 
-    env:
+# O GitHub passou a usar CMake 4, que recusa dependencias antigas do FlexASIO
+# (cmake_minimum_required < 3.5). Esta variavel manda aceitar mesmo assim.
+env:
   CMAKE_POLICY_VERSION_MINIMUM: "3.5"
 
 jobs:

@@ -1,0 +1,17 @@
+{
+  "brand": "RAD Audio",
+  "driver_name": "RAD Audio",
+  "publisher": "RAD Audio",
+  "url": "https://www.example.com/rad-audio",
+  "support_url": "https://www.example.com/rad-audio/suporte",
+  "docs_url": "https://www.example.com/rad-audio/docs",
+  "file_base": "RADAudio",
+  "reg_vendor": "RADAudio",
+  "installer_basename": "RADAudio-Setup",
+  "guids": {
+    "clsid": "D03C7647-4813-4A4F-A3B5-2125B5350AEA",
+    "typelib": "62791EBA-8082-442E-8D59-CE2214D98C06",
+    "interface": "467D7E67-ECE7-4CFB-82FA-7122A76725EF",
+    "appid": "34A1B8F5-F9D1-4497-9325-DD4026D4E868"
+  }
+}

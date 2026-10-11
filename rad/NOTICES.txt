@@ -1,0 +1,11 @@
+RAD Audio - Avisos de terceiros
+
+Este produto e baseado no FlexASIO (https://github.com/dechamps/FlexASIO),
+Copyright (c) 2018 Etienne Dechamps, distribuido sob a licenca MIT. O texto
+completo da licenca esta no arquivo LICENSE.txt instalado junto com este
+programa.
+
+Este produto utiliza o PortAudio (http://www.portaudio.com). O texto da licenca
+do PortAudio esta na pasta "licenses" do diretorio de instalacao.
+
+ASIO is a trademark and software of Steinberg Media Technologies GmbH.

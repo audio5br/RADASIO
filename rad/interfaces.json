@@ -1,0 +1,31 @@
+{
+  "interfaces": [
+    {
+      "id": "rad-one-96",
+      "name": "RAD One 96",
+      "match": ["Rad-One96"],
+      "sampleRates": [44100, 48000, 88200, 96000],
+      "defaultRate": 48000,
+      "backend": "Windows WASAPI",
+      "buffers": { "low": 480, "balanced": 512, "stable": 1024 }
+    },
+    {
+      "id": "rad-zero-48",
+      "name": "RAD Zero 48",
+      "match": ["USB Audio Codec"],
+      "sampleRates": [44100, 48000],
+      "defaultRate": 48000,
+      "backend": "Windows WASAPI",
+      "buffers": { "low": 480, "balanced": 512, "stable": 1024 }
+    },
+    {
+      "id": "rad-two-192",
+      "name": "RAD Two 192",
+      "match": ["Rad-Two192"],
+      "sampleRates": [44100, 48000, 88200, 96000, 176400, 192000],
+      "defaultRate": 48000,
+      "backend": "Windows WASAPI",
+      "buffers": { "low": 480, "balanced": 512, "stable": 1024 }
+    }
+  ]
+}

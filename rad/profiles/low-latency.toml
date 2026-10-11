@@ -1,0 +1,11 @@
+# RAD Audio - perfil "Baixa latencia" (ponto de partida; ajuste ao seu hardware)
+backend = "Windows WASAPI"
+bufferSizeSamples = 480
+
+[input]
+suggestedLatencySeconds = 0.0
+wasapiExclusiveMode = true
+
+[output]
+suggestedLatencySeconds = 0.0
+wasapiExclusiveMode = true

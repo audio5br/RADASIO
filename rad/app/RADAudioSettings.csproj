@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- .NET Framework 4.8 ja vem com o Windows 10/11: o .exe e pequeno e nao exige instalar runtime. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <AssemblyName>RADAudioSettings</AssemblyName>
+    <RootNamespace>RadAudio.Settings</RootNamespace>
+    <ApplicationIcon>..\assets\rad.ico</ApplicationIcon>
+    <Version>1.0.0</Version>
+    <Company>RAD Audio</Company>
+    <Product>RAD Audio</Product>
+    <Copyright>RAD Audio</Copyright>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Web.Extensions" />
+    <EmbeddedResource Include="rad_logo.png" LogicalName="rad_logo.png" />
+  </ItemGroup>
+
+</Project>

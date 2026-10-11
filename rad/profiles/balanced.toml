@@ -1,0 +1,3 @@
+# RAD Audio - perfil "Equilibrado" (ponto de partida; ajuste ao seu hardware)
+backend = "Windows WASAPI"
+bufferSizeSamples = 512

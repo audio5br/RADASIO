@@ -33,7 +33,7 @@ namespace RadAudio.Settings
         public string InputDevice;  // null = dispositivo padrao, "" = desativado, senao o nome
         public string OutputDevice;
         public string InterfaceId;  // so do painel (gravado como comentario no .toml)
-        public int Rate = 48000;    // so do painel: taxa usada para calcular buffer/latencia
+        public int Rate;            // 0 = automatica (a do Windows); senao vira 'sampleRate' no .toml
 
         public AudioConfig Clone() { return (AudioConfig)MemberwiseClone(); }
     }
@@ -48,7 +48,6 @@ namespace RadAudio.Settings
     static class Toml
     {
         const string IfaceKey = "# rad-interface =";
-        const string RateKey = "# rad-rate =";
 
         public static string ConfigPath
         {
@@ -88,12 +87,6 @@ namespace RadAudio.Settings
             {
                 string line = line0.Trim();
                 if (line.StartsWith(IfaceKey)) { c.InterfaceId = line.Substring(IfaceKey.Length).Trim(); continue; }
-                if (line.StartsWith(RateKey))
-                {
-                    int r;
-                    if (int.TryParse(line.Substring(RateKey.Length).Trim(), out r) && r > 0) c.Rate = r;
-                    continue;
-                }
                 if (line.Length == 0 || line[0] == '#') continue;
                 if (line[0] == '[') { section = line.Trim('[', ']', ' ').ToLowerInvariant(); continue; }
                 int eq = line.IndexOf('=');
@@ -104,6 +97,7 @@ namespace RadAudio.Settings
                 {
                     if (key == "backend") c.Backend = val;
                     else if (key == "bufferSizeSamples") { int n; if (int.TryParse(val, out n)) c.BufferSize = n; }
+                    else if (key == "sampleRate") { int r; if (int.TryParse(val, out r) && r > 0) c.Rate = r; }
                 }
                 else if (section == "input" || section == "output")
                 {
@@ -125,9 +119,9 @@ namespace RadAudio.Settings
             sb.AppendLine("# Gerado pelo RAD Audio Settings. Opcoes que o painel nao conhece nao sao preservadas");
             sb.AppendLine("# (uma copia do arquivo anterior fica em RADAudio.toml.bak).");
             if (c.InterfaceId != null) sb.AppendLine(IfaceKey + " " + c.InterfaceId);
-            sb.AppendLine(RateKey + " " + c.Rate.ToString(CultureInfo.InvariantCulture));
             sb.AppendLine("backend = " + Quote(c.Backend));
             sb.AppendLine("bufferSizeSamples = " + c.BufferSize.ToString(CultureInfo.InvariantCulture));
+            if (c.Rate > 0) sb.AppendLine("sampleRate = " + c.Rate.ToString(CultureInfo.InvariantCulture));
             WriteSection(sb, "input", c, c.InputDevice);
             WriteSection(sb, "output", c, c.OutputDevice);
             if (File.Exists(ConfigPath)) File.Copy(ConfigPath, ConfigPath + ".bak", true);
@@ -261,7 +255,11 @@ namespace RadAudio.Settings
     {
         public int Hz;
         public RateItem(int hz) { Hz = hz; }
-        public override string ToString() { return (Hz / 1000.0).ToString("0.#", CultureInfo.CurrentCulture) + " kHz"; }
+        public override string ToString()
+        {
+            if (Hz <= 0) return "Autom\u00e1tica (a do Windows)";
+            return (Hz / 1000.0).ToString("0.#", CultureInfo.CurrentCulture) + " kHz";
+        }
     }
 
     // ---------- dispositivos de audio (via PortAudioDevices.exe) ----------
@@ -360,7 +358,7 @@ namespace RadAudio.Settings
         readonly Preset[] _presets = new[]
         {
             new Preset { Name = "Baixa lat\u00eancia", Description = "Grava\u00e7\u00e3o e monitora\u00e7\u00e3o",
-                Config = new AudioConfig { Backend = "Windows WASAPI", BufferSize = 480, Exclusive = true, MinLatency = true } },
+                Config = new AudioConfig { Backend = "Windows WASAPI", BufferSize = 256, Exclusive = true, MinLatency = true } },
             new Preset { Name = "Equilibrado", Description = "Uso geral",
                 Config = new AudioConfig { Backend = "Windows WASAPI", BufferSize = 512 } },
             new Preset { Name = "Est\u00e1vel", Description = "Mixagem e projetos grandes",
@@ -377,6 +375,7 @@ namespace RadAudio.Settings
         readonly ComboBox _rate = new ComboBox();
         readonly NumericUpDown _buffer = new NumericUpDown();
         readonly Label _latency = new Label();
+        readonly Label _rateNote = new Label();
         readonly CheckBox _exclusive = new CheckBox();
         readonly CheckBox _minLatency = new CheckBox();
         readonly Label _subtitle = new Label();
@@ -418,7 +417,7 @@ namespace RadAudio.Settings
             {
                 _iface.SelectedIndex = idx >= 0 ? idx : _catalog.Count;
                 _current = idx >= 0 ? _catalog[idx] : null;
-                FillRates(_current, cfg != null ? cfg.Rate : 48000);
+                FillRates(_current, cfg != null ? cfg.Rate : 0);
                 ApplyToControls(cfg ?? _presets[1].Config);
             });
             if (cfg != null) SetActivePreset(MatchPreset(cfg));
@@ -543,7 +542,7 @@ namespace RadAudio.Settings
 
             // Cartao: audio
             var audio = MakeCard(650, 108, 358, 290, "\u00c1udio");
-            audio.Controls.Add(MakeLabel("Taxa de trabalho", 16, 46, Muted, 8.5f, true));
+            audio.Controls.Add(MakeLabel("Taxa de amostragem", 16, 46, Muted, 8.5f, true));
             StyleCombo(_rate, 16, 66, 160, false);
             _rate.SelectedIndexChanged += (s, e) =>
             {
@@ -563,7 +562,9 @@ namespace RadAudio.Settings
             _latency.AutoSize = true; _latency.Left = 16; _latency.Top = 194; _latency.ForeColor = Accent;
             _latency.Font = new Font("Segoe UI", 24f, FontStyle.Bold);
             audio.Controls.Add(_latency);
-            audio.Controls.Add(MakeLabel("A taxa real \u00e9 definida pelo seu DAW. Aqui ela serve\npara calcular o buffer e a lat\u00eancia.", 16, 248, Muted, 8f, false));
+            _rateNote.AutoSize = false; _rateNote.Left = 16; _rateNote.Top = 246; _rateNote.Width = 326; _rateNote.Height = 36;
+            _rateNote.ForeColor = Muted; _rateNote.Font = new Font("Segoe UI", 8f);
+            audio.Controls.Add(_rateNote);
             Controls.Add(audio);
 
             // Cartao: opcoes
@@ -627,14 +628,18 @@ namespace RadAudio.Settings
             _subtitle.Text = "Perfil ativo: " + (index >= 0 ? _presets[index].Name : "Personalizado");
         }
 
-        int CurrentRate
+        // Taxa escolhida: 0 = automatica.
+        int SelectedHz
         {
             get
             {
                 var item = _rate.SelectedItem as RateItem;
-                return item != null ? item.Hz : 48000;
+                return item != null ? item.Hz : 0;
             }
         }
+
+        // Taxa usada nos calculos de buffer/latencia (48 kHz quando automatica).
+        int CurrentRate { get { return SelectedHz > 0 ? SelectedHz : 48000; } }
 
         static int Scale(int baseSamples, int rate)
         {
@@ -660,16 +665,17 @@ namespace RadAudio.Settings
         {
             _rate.Items.Clear();
             IEnumerable<int> rates = f != null ? (IEnumerable<int>)f.Rates : StandardRates;
-            RateItem pick = null, fallback = null;
+            var auto = new RateItem(0);
+            _rate.Items.Add(auto);
+            RateItem pick = (wanted <= 0) ? auto : null;
             foreach (int hz in rates)
             {
                 var item = new RateItem(hz);
                 _rate.Items.Add(item);
                 if (hz == wanted) pick = item;
-                if (f != null && hz == f.DefaultRate) fallback = item;
-                if (f == null && hz == 48000) fallback = item;
             }
-            _rate.SelectedItem = pick ?? fallback ?? (_rate.Items.Count > 0 ? _rate.Items[0] : null);
+            // Taxa nao suportada pela nova interface: volta para "Automatica" (mais seguro).
+            _rate.SelectedItem = pick ?? auto;
         }
 
         void SetBackend(string b)
@@ -712,7 +718,7 @@ namespace RadAudio.Settings
             _current = (index >= 0 && index < _catalog.Count) ? _catalog[index] : null;
             Quiet(() =>
             {
-                FillRates(_current, CurrentRate);
+                FillRates(_current, SelectedHz);
                 if (_current != null) SetBackend(_current.Backend);
                 RefreshDeviceLists();
                 if (fillDevices)
@@ -775,6 +781,9 @@ namespace RadAudio.Settings
         {
             double ms = (double)_buffer.Value / CurrentRate * 1000.0;
             _latency.Text = ms.ToString("0.0", CultureInfo.CurrentCulture) + " ms";
+            _rateNote.Text = SelectedHz == 0
+                ? "Autom\u00e1tica: o driver segue a taxa do Windows. Lat\u00eancia calculada a 48 kHz."
+                : "O driver informa " + new RateItem(SelectedHz) + " ao DAW ao abrir. No modo exclusivo, o dispositivo precisa aceit\u00e1-la.";
         }
 
         static string DeviceToText(string device)
@@ -813,7 +822,7 @@ namespace RadAudio.Settings
                 InputDevice = TextToDevice(_input.Text),
                 OutputDevice = TextToDevice(_output.Text),
                 InterfaceId = _current != null ? _current.Id : null,
-                Rate = CurrentRate
+                Rate = SelectedHz
             };
         }
 
@@ -872,7 +881,7 @@ namespace RadAudio.Settings
             try
             {
                 Toml.Save(ReadFromControls());
-                _message.Text = "Salvo \u00e0s " + DateTime.Now.ToString("HH:mm:ss") + ". O driver recarrega as configura\u00e7\u00f5es automaticamente.";
+                _message.Text = "Salvo \u00e0s " + DateTime.Now.ToString("HH:mm:ss") + ". O driver pede ao DAW para recarregar; se nada mudar, reinicie o \u00e1udio do DAW.";
             }
             catch (Exception ex)
             {

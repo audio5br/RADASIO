@@ -1,6 +1,6 @@
 # RAD Audio - perfil "Baixa latencia" (ponto de partida; ajuste ao seu hardware)
 backend = "Windows WASAPI"
-bufferSizeSamples = 480
+bufferSizeSamples = 256
 
 [input]
 suggestedLatencySeconds = 0.0

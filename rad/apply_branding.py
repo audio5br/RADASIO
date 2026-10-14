@@ -100,6 +100,35 @@ sub(f"{FA}/control_panel.cpp",
     'std::wstring(L"https://github.com/dechamps/FlexASIO/blob/") + ConvertFromUTF8(::dechamps_CMakeUtils_gitDescription) + L"/CONFIGURATION.md"',
     f'std::wstring(L"{cfg["docs_url"]}")', "URL da documentacao")
 
+print("Opcao sampleRate (taxa de amostragem definida pelo painel)")
+# O FlexASIO original informa ao DAW a taxa padrao do dispositivo no Windows. Com esta
+# opcao, `sampleRate = N` no arquivo .toml passa a ser a taxa informada ao abrir o driver.
+sub(f"{FA}/config.h", "std::optional<int64_t> bufferSizeSamples;",
+    "std::optional<int64_t> bufferSizeSamples;\n\t\tstd::optional<int64_t> sampleRate;", "campo sampleRate")
+sub(f"{FA}/config.h", "bufferSizeSamples == other.bufferSizeSamples &&",
+    "bufferSizeSamples == other.bufferSizeSamples &&\n\t\t\t\tsampleRate == other.sampleRate &&",
+    "sampleRate na comparacao (dispara o reset ao mudar)")
+sub(f"{FA}/config.cpp", "void SetStream(const toml::Table& table, Config::Stream& stream) {",
+    "void ValidateSampleRate(const int64_t& sampleRate) {\n"
+    "\t\t\tif (sampleRate <= 0) throw std::runtime_error(\"sample rate must be strictly positive\");\n"
+    "\t\t\tif (sampleRate > 1'000'000) throw std::runtime_error(\"sample rate is too large\");\n"
+    "\t\t}\n\n"
+    "\t\tvoid SetStream(const toml::Table& table, Config::Stream& stream) {", "validacao do sampleRate")
+sub(f"{FA}/config.cpp", 'SetOption(table, "bufferSizeSamples", config.bufferSizeSamples, ValidateBufferSize);',
+    'SetOption(table, "bufferSizeSamples", config.bufferSizeSamples, ValidateBufferSize);\n'
+    '\t\t\tSetOption(table, "sampleRate", config.sampleRate, ValidateSampleRate);', "leitura da opcao sampleRate")
+sub(f"{FA}/flexasio.cpp",
+    "ASIOSampleRate GetDefaultSampleRate(const std::optional<Device>& inputDevice, const std::optional<Device>& outputDevice) {",
+    "ASIOSampleRate GetDefaultSampleRate(const Config& config, const std::optional<Device>& inputDevice, const std::optional<Device>& outputDevice) {\n"
+    "\t\t\tif (config.sampleRate.has_value()) {\n"
+    "\t\t\t\t// Taxa definida no arquivo de configuracao tem prioridade sobre a do Windows.\n"
+    "\t\t\t\tLog() << \"Using sample rate \" << *config.sampleRate << \" Hz from configuration\";\n"
+    "\t\t\t\treturn static_cast<ASIOSampleRate>(*config.sampleRate);\n"
+    "\t\t\t}",
+    "taxa da configuracao tem prioridade")
+sub(f"{FA}/flexasio.cpp", "sampleRate(GetDefaultSampleRate(inputDevice, outputDevice))",
+    "sampleRate(GetDefaultSampleRate(config, inputDevice, outputDevice))", "chamada com a configuracao")
+
 print("Build (CMake) e metadados da DLL")
 sub(f"{FA}/CMakeLists.txt", 'PROJECT_DESCRIPTION="FlexASIO ASIO Driver DLL"',
     f'PROJECT_DESCRIPTION="{cfg["brand"]} ASIO Driver DLL"', "descricao da DLL")

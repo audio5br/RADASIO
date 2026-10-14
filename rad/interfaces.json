@@ -7,7 +7,7 @@
       "sampleRates": [44100, 48000, 88200, 96000],
       "defaultRate": 48000,
       "backend": "Windows WASAPI",
-      "buffers": { "low": 480, "balanced": 512, "stable": 1024 }
+      "buffers": { "low": 256, "balanced": 512, "stable": 1024 }
     },
     {
       "id": "rad-zero-48",
@@ -16,7 +16,7 @@
       "sampleRates": [44100, 48000],
       "defaultRate": 48000,
       "backend": "Windows WASAPI",
-      "buffers": { "low": 480, "balanced": 512, "stable": 1024 }
+      "buffers": { "low": 256, "balanced": 512, "stable": 1024 }
     },
     {
       "id": "rad-two-192",
@@ -25,7 +25,7 @@
       "sampleRates": [44100, 48000, 88200, 96000, 176400, 192000],
       "defaultRate": 48000,
       "backend": "Windows WASAPI",
-      "buffers": { "low": 480, "balanced": 512, "stable": 1024 }
+      "buffers": { "low": 256, "balanced": 512, "stable": 1024 }
     }
   ]
 }

@@ -342,12 +342,14 @@ namespace RadAudio.Settings
     sealed class MainForm : Form
     {
         // Paleta (mesma do mockup)
-        static readonly Color Bg = Color.FromArgb(20, 22, 26);
-        static readonly Color Panel = Color.FromArgb(28, 31, 37);
-        static readonly Color Border = Color.FromArgb(42, 46, 54);
-        static readonly Color Fg = Color.FromArgb(232, 234, 237);
-        static readonly Color Muted = Color.FromArgb(154, 161, 172);
-        static readonly Color Accent = Color.FromArgb(242, 240, 239);
+        static readonly Color Bg = Color.FromArgb(250, 250, 250);      // #FAFAFA: janela e barra lateral
+        static readonly Color Card = Color.White;                      // cartoes
+        static readonly Color Input = Color.FromArgb(240, 240, 240);   // campos
+        static readonly Color Border = Color.FromArgb(214, 214, 214);
+        static readonly Color Fg = Color.Black;                        // texto
+        static readonly Color Muted = Color.Black;                     // texto secundario (tambem preto)
+        static readonly Color Accent = Color.Black;                    // destaques
+        static readonly Color OnAccent = Color.FromArgb(250, 250, 250);// texto sobre o destaque
 
         const string DefaultDevice = "Dispositivo padr\u00e3o";
         const string DisabledDevice = "Desativado";
@@ -442,7 +444,7 @@ namespace RadAudio.Settings
 
         static Panel MakeCard(int x, int y, int w, int h, string title)
         {
-            var p = new Panel { Left = x, Top = y, Width = w, Height = h, BackColor = Panel };
+            var p = new Panel { Left = x, Top = y, Width = w, Height = h, BackColor = Card };
             p.Paint += (s, e) => e.Graphics.DrawRectangle(new Pen(Border), 0, 0, p.Width - 1, p.Height - 1);
             p.Controls.Add(MakeLabel(title, 16, 14, Fg, 11f, true));
             return p;
@@ -453,19 +455,20 @@ namespace RadAudio.Settings
             c.Left = x; c.Top = y; c.Width = w;
             c.DropDownStyle = editable ? ComboBoxStyle.DropDown : ComboBoxStyle.DropDownList;
             c.FlatStyle = FlatStyle.Flat;
-            c.BackColor = Bg; c.ForeColor = Fg;
+            c.BackColor = Input; c.ForeColor = Fg;
         }
 
         void BuildSidebar()
         {
-            var side = new Panel { Left = 0, Top = 0, Width = 240, Height = 660, BackColor = Panel };
+            var side = new Panel { Left = 0, Top = 0, Width = 240, Height = 660, BackColor = Bg };
             side.Paint += (s, e) => e.Graphics.DrawLine(new Pen(Border), 239, 0, 239, 660);
 
-            var logo = new PictureBox { Left = 24, Top = 24, Width = 44, Height = 44, SizeMode = PictureBoxSizeMode.Zoom, BackColor = Panel };
+            var logo = new PictureBox { Left = 24, Top = 24, Width = 44, Height = 44, SizeMode = PictureBoxSizeMode.Zoom, BackColor = Bg };
             try
             {
                 using (Stream s = Assembly.GetExecutingAssembly().GetManifestResourceStream("rad_logo.png"))
-                    if (s != null) logo.Image = Image.FromStream(s);
+                    if (s != null)
+                        using (Image raw = Image.FromStream(s)) logo.Image = new Bitmap(raw);   // copia: nao depende do stream
             }
             catch { }
             side.Controls.Add(logo);
@@ -481,7 +484,7 @@ namespace RadAudio.Settings
                     Left = 12, Top = 126 + i * 66, Width = 216, Height = 58,
                     Text = _presets[i].Name + Environment.NewLine + _presets[i].Description,
                     TextAlign = ContentAlignment.MiddleLeft, Padding = new Padding(8, 0, 0, 0),
-                    FlatStyle = FlatStyle.Flat, BackColor = Panel, ForeColor = Fg, UseVisualStyleBackColor = false
+                    FlatStyle = FlatStyle.Flat, BackColor = Bg, ForeColor = Fg, UseVisualStyleBackColor = false
                 };
                 b.FlatAppearance.BorderSize = 1;
                 b.Click += (s, e) => { ApplyPreset(idx); };
@@ -533,7 +536,7 @@ namespace RadAudio.Settings
             var refresh = new Button
             {
                 Text = "Atualizar lista de dispositivos", Left = 16, Top = 232, Width = 326, Height = 40,
-                FlatStyle = FlatStyle.Flat, BackColor = Panel, ForeColor = Fg, UseVisualStyleBackColor = false
+                FlatStyle = FlatStyle.Flat, BackColor = Card, ForeColor = Fg, UseVisualStyleBackColor = false
             };
             refresh.FlatAppearance.BorderColor = Border;
             refresh.Click += (s, e) => { RefreshDevices(true); UpdateIfaceStatus(); };
@@ -543,7 +546,7 @@ namespace RadAudio.Settings
             // Cartao: audio
             var audio = MakeCard(650, 108, 358, 290, "\u00c1udio");
             audio.Controls.Add(MakeLabel("Taxa de amostragem", 16, 46, Muted, 8.5f, true));
-            StyleCombo(_rate, 16, 66, 160, false);
+            StyleCombo(_rate, 16, 66, 326, false);
             _rate.SelectedIndexChanged += (s, e) =>
             {
                 if (_loading) return;
@@ -554,7 +557,7 @@ namespace RadAudio.Settings
             audio.Controls.Add(MakeLabel("Tamanho do buffer (samples)", 16, 108, Muted, 8.5f, true));
             _buffer.Left = 16; _buffer.Top = 128; _buffer.Width = 160;
             _buffer.Minimum = 16; _buffer.Maximum = 16384; _buffer.Increment = 16; _buffer.Value = 512;
-            _buffer.BackColor = Bg; _buffer.ForeColor = Fg; _buffer.BorderStyle = BorderStyle.FixedSingle;
+            _buffer.BackColor = Input; _buffer.ForeColor = Fg; _buffer.BorderStyle = BorderStyle.FixedSingle;
             _buffer.ValueChanged += (s, e) => { UpdateLatency(); if (!_loading) Touched(); };
             audio.Controls.Add(_buffer);
 
@@ -600,7 +603,7 @@ namespace RadAudio.Settings
             var apply = new Button
             {
                 Text = "Aplicar altera\u00e7\u00f5es", Left = 838, Top = 590, Width = 170, Height = 44,
-                FlatStyle = FlatStyle.Flat, BackColor = Accent, ForeColor = Color.FromArgb(11, 18, 16),
+                FlatStyle = FlatStyle.Flat, BackColor = Accent, ForeColor = OnAccent,
                 Font = new Font("Segoe UI", 9.5f, FontStyle.Bold), UseVisualStyleBackColor = false
             };
             apply.FlatAppearance.BorderSize = 0;
@@ -624,7 +627,7 @@ namespace RadAudio.Settings
         {
             _activePreset = index;
             for (int i = 0; i < _presetButtons.Length; i++)
-                _presetButtons[i].FlatAppearance.BorderColor = (i == index) ? Accent : Panel;
+                _presetButtons[i].FlatAppearance.BorderColor = (i == index) ? Accent : Bg;
             _subtitle.Text = "Perfil ativo: " + (index >= 0 ? _presets[index].Name : "Personalizado");
         }
 
